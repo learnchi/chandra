@@ -1,0 +1,22 @@
+{
+  "name": "studiogau/chandra",
+  "version": "0.1.0",
+  "description": "\"Lightweight PHP framework for building business applications and CMS with simplicity.\"",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Studiogau\\Chandra\\": "src/"
+    }
+  },
+  "authors": [
+    { "name": "learnchi", "email": "learnchiee@gmail.com" }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "symfony/http-foundation": "^7.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.5"
+  }
+}

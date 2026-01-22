@@ -1,0 +1,27 @@
+# OSごとの不要ファイル
+.DS_Store
+Thumbs.db
+
+# IDE/エディタの設定ファイル
+.vscode/
+.idea/
+
+# Composer
+/vendor/
+
+# キャッシュやログ
+*.log
+*.cache
+*.tmp
+*.bak
+*.swp
+/log/*
+/tmp/*
+/images/*
+
+# 環境設定
+.env
+dbconfig.ini
+
+# OS/ツールによる一時ファイル
+*.~*
