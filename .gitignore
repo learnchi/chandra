@@ -8,6 +8,7 @@ Thumbs.db
 
 # Composer
 /vendor/
+composer.lock
 
 # キャッシュやログ
 *.log
