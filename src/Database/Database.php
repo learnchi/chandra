@@ -19,6 +19,10 @@ class MultipleRecordsFoundException extends RuntimeException {}
 class Database
 {
     private const DEFAULT_USER_ID = 'SYSTEM';
+    private const COL_created_at = 'created_at';
+    private const COL_created_by = 'created_by';
+    private const COL_updated_at = 'updated_at';
+    private const COL_updated_by = 'updated_by';
 
     /** @var PdoConnection */
     private $connection;
@@ -209,7 +213,7 @@ class Database
     }
 
     /**
-     * 監査項目 UPDATE_BY に設定するユーザーIDを指定する。
+     * 監査項目 updated_by に設定するユーザーIDを指定する。
      *
      * @param string $userId ユーザーID
      * @return void
@@ -631,15 +635,21 @@ class Database
      */
     private function injectAuditColumns(array $values): array
     {
-        if (array_key_exists('CREATE_DATE', $values) || array_key_exists('CREATE_BY', $values)) {
-            throw new InvalidArgumentException('injectAuditColumns: CREATE_DATE/CREATE_BY cannot be updated.');
+        if (array_key_exists(self::COL_created_at, $values) || array_key_exists(self::COL_created_by, $values)) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'injectAuditColumns: %s/%s cannot be updated.',
+                    self::COL_created_at,
+                    self::COL_created_by
+                )
+            );
         }
 
-        $values['UPDATE_DATE'] = [
+        $values[self::COL_updated_at] = [
             'value' => $this->getCurrentTimestamp(),
             'datatype' => PDO::PARAM_STR,
         ];
-        $values['UPDATE_BY'] = [
+        $values[self::COL_updated_by] = [
             'value' => $this->currentUserId,
             'datatype' => PDO::PARAM_STR,
         ];
@@ -655,31 +665,37 @@ class Database
      */
     private function injectInsertAuditColumns(array $values): array
     {
-        if (array_key_exists('CREATE_DATE', $values) && array_key_exists('CREATE_BY', $values)) {
+        if (array_key_exists(self::COL_created_at, $values) && array_key_exists(self::COL_created_by, $values)) {
             return $this->ensureInsertUpdateColumns($values);
         }
 
-        if (array_key_exists('CREATE_DATE', $values) xor array_key_exists('CREATE_BY', $values)) {
-            throw new InvalidArgumentException('insert: CREATE_DATE and CREATE_BY must be specified together.');
+        if (array_key_exists(self::COL_created_at, $values) xor array_key_exists(self::COL_created_by, $values)) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'insert: %s and %s must be specified together.',
+                    self::COL_created_at,
+                    self::COL_created_by
+                )
+            );
         }
 
         $timestamp = $this->getCurrentTimestamp();
         $user = $this->currentUserId;
 
-        $values['CREATE_DATE'] = [
+        $values[self::COL_created_at] = [
             'value' => $timestamp,
             'datatype' => PDO::PARAM_STR,
         ];
-        $values['CREATE_BY'] = [
+        $values[self::COL_created_by] = [
             'value' => $user,
             'datatype' => PDO::PARAM_STR,
         ];
 
-        $values['UPDATE_DATE'] = [
+        $values[self::COL_updated_at] = [
             'value' => $timestamp,
             'datatype' => PDO::PARAM_STR,
         ];
-        $values['UPDATE_BY'] = [
+        $values[self::COL_updated_by] = [
             'value' => $user,
             'datatype' => PDO::PARAM_STR,
         ];
@@ -698,15 +714,15 @@ class Database
         $timestamp = $this->getCurrentTimestamp();
         $user = $this->currentUserId;
 
-        if (!array_key_exists('UPDATE_DATE', $values)) {
-            $values['UPDATE_DATE'] = [
+        if (!array_key_exists(self::COL_updated_at, $values)) {
+            $values[self::COL_updated_at] = [
                 'value' => $timestamp,
                 'datatype' => PDO::PARAM_STR,
             ];
         }
 
-        if (!array_key_exists('UPDATE_BY', $values)) {
-            $values['UPDATE_BY'] = [
+        if (!array_key_exists(self::COL_updated_by, $values)) {
+            $values[self::COL_updated_by] = [
                 'value' => $user,
                 'datatype' => PDO::PARAM_STR,
             ];

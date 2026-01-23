@@ -45,10 +45,10 @@ final class DatabaseTest extends TestCase
                 name TEXT NOT NULL,
                 quantity INTEGER NOT NULL,
                 remarks TEXT NULL,
-                CREATE_DATE TEXT NULL,
-                CREATE_BY TEXT NULL,
-                UPDATE_DATE TEXT NULL,
-                UPDATE_BY TEXT NULL
+                created_at TEXT NULL,
+                created_by TEXT NULL,
+                updated_at TEXT NULL,
+                updated_by TEXT NULL
             )'
         );
     }
@@ -56,7 +56,7 @@ final class DatabaseTest extends TestCase
     private function insertSeed(string $name, int $quantity, ?string $remarks = null): int
     {
         $stmt = $this->connection->getPdo()->prepare(
-            'INSERT INTO test_items (name, quantity, remarks, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY)
+            'INSERT INTO test_items (name, quantity, remarks, created_at, created_by, updated_at, updated_by)
              VALUES (:name, :quantity, :remarks, :cdate, :cby, :udate, :uby)'
         );
         $now = '2024-01-01 00:00:00';
@@ -137,13 +137,13 @@ final class DatabaseTest extends TestCase
         $this->assertSame(1, $affected);
 
         $row = $this->connection->getPdo()
-            ->query('SELECT name, quantity, CREATE_BY, UPDATE_BY FROM test_items WHERE name = "Delta"')
+            ->query('SELECT name, quantity, created_by, updated_by FROM test_items WHERE name = "Delta"')
             ->fetch(\PDO::FETCH_ASSOC);
 
         $this->assertSame('Delta', $row['name']);
         $this->assertSame(5, (int) $row['quantity']);
-        $this->assertSame('SYSTEM', $row['CREATE_BY']);
-        $this->assertSame('SYSTEM', $row['UPDATE_BY']);
+        $this->assertSame('SYSTEM', $row['created_by']);
+        $this->assertSame('SYSTEM', $row['updated_by']);
     }
 
     /**
@@ -163,11 +163,11 @@ final class DatabaseTest extends TestCase
         $this->assertSame(1, $affected);
 
         $row = $this->connection->getPdo()
-            ->query('SELECT quantity, UPDATE_BY FROM test_items WHERE id = ' . $id)
+            ->query('SELECT quantity, updated_by FROM test_items WHERE id = ' . $id)
             ->fetch(\PDO::FETCH_ASSOC);
 
         $this->assertSame(7, (int) $row['quantity']);
-        $this->assertSame('tester', $row['UPDATE_BY']);
+        $this->assertSame('tester', $row['updated_by']);
     }
 
     /**
