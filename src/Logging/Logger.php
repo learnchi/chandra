@@ -61,14 +61,13 @@ class Logger
      * @param int $threshold 出力する最小レベル
      * @return self
      */
-    public static function createDefault($threshold = self::LEVEL_INFO)
+    public static function createDefault(?string $projectRoot = null, string $fileName = 'Chandra.log', $threshold = self::LEVEL_INFO)
     {
-        $root = dirname(__DIR__, 2);
+        $root = $projectRoot ?? dirname(__DIR__, 2);
         $logDir = $root . DIRECTORY_SEPARATOR . 'log';
 
-        return new self($logDir, 'Chandra.log', $threshold);
+        return new self($logDir, $fileName, $threshold);
     }
-
     /**
      * ログを1行書き込む（年月ごとのファイルに日付・レベルを付与）。
      *

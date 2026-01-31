@@ -88,10 +88,26 @@ final class AuthService
 
         $startTime = ChandraConst::LOGIN_TIMEOUT > 0 ? time() : null;
 
+        // 権限の整形
+        $rawPermissions = $row['permissions'] ?? [];
+
+        if (is_array($rawPermissions)) {
+            $permissions = $rawPermissions;
+        } else {
+            // 文字列想定（null対策済み）
+            $permissions = explode(',', (string)$rawPermissions);
+        }
+
+        // trim + 空要素除去
+        $permissions = array_values(array_filter(
+            array_map('trim', $permissions),
+            static fn($s) => $s !== ''
+        ));
+
         $loginUser = new LoginUser(
-            $row['USER_ID'],
-            $row['USER_NAME'],
-            explode(',', $row['PERMISSIONS'] ?? ''),
+            $row['user_id'],
+            $row['user_name'],
+            $permissions,
             $startTime
         );
 

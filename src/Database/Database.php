@@ -49,10 +49,10 @@ class Database
      * @throws PDOException
      * @throws RuntimeException
      */
-    public static function fromIni($path)
+    public static function fromIni(string $path, ?Logger $logger = null)
     {
         $connection = PdoConnection::fromIni($path);
-        return new self($connection);
+        return new self($connection, $logger);
     }
 
     /**

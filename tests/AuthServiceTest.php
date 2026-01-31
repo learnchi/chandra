@@ -68,9 +68,9 @@ final class AuthServiceTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'USER_ID' => $userId,
-                    'USER_NAME' => 'Tester',
-                    'PERMISSIONS' => 'read,write',
+                    'user_id' => $userId,
+                    'user_name' => 'Tester',
+                    'permissions' => 'read,write',
                 ];
             }
         };
@@ -84,6 +84,32 @@ final class AuthServiceTest extends TestCase
         $this->assertInstanceOf(LoginUser::class, $currentUser);
         $this->assertSame('user01', $currentUser->getUserId());
         $this->assertTrue($currentUser->can('write'));
+    }
+
+    public function testLoginAcceptsPermissionsArray(): void
+    {
+        $repo = new class implements UserRepositoryInterface {
+            public function findByCredentials(string $userId, string $password): ?array
+            {
+                return [
+                    'user_id' => $userId,
+                    'user_name' => 'ArrayTester',
+                    'permissions' => ['read', ' write ', ''],
+                ];
+            }
+        };
+
+        $service = new AuthService($repo, new AuthServiceNullLogger());
+
+        $result = $service->login('user02', 'secret');
+
+        $this->assertTrue($result);
+        $currentUser = $service->getCurrentUser();
+        $this->assertInstanceOf(LoginUser::class, $currentUser);
+        $this->assertSame('user02', $currentUser->getUserId());
+        $this->assertTrue($currentUser->can('read'));
+        $this->assertTrue($currentUser->can('write'));
+        $this->assertFalse($currentUser->can(''));
     }
 
     /**

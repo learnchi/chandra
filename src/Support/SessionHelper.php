@@ -331,34 +331,6 @@ final class SessionHelper
     }
 
     /**
-     * セッション内容をログ出力する（デバッグ用）。
-     *
-     * @return void
-     */
-    public static function logSession(): void
-    {
-        $logger = Logger::createDefault();
-        $logger->debug("==== SESSION ====");
-
-        $auth = self::getSession(self::USER_SESSION_KEY) ?? "";
-        $logger->debug("USER USER IS:" . $auth);
-
-        $msg = self::getSession(self::FLUSH_SUCCESS) ?? "";
-        $logger->debug("FLUSH SUCCESS IS:" . $msg);
-
-        $msg = self::getSession(self::FLUSH_ERROR) ?? "";
-        $logger->debug("FLUSH ERROR IS:" . $msg);
-
-        $master = self::getSession(self::MASTER_SESSION_KEY) ?? null;
-        $logger->debug("MASTER IS:" . json_encode($master, JSON_UNESCAPED_UNICODE));
-
-        $struct = self::getSession(self::SESSION_KEY) ?? null;
-        $logger->debug("STRUCT IS:" . json_encode($struct, JSON_UNESCAPED_UNICODE));
-
-        $logger->debug("==== SESSION END ====");
-    }
-
-    /**
      * セッションキーへ値を保存する（プレフィックス付き）。
      *
      * @param string $key   セッションキー
