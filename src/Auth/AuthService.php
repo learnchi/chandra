@@ -79,11 +79,11 @@ final class AuthService
             $row = $this->repo->findByCredentials($userId, $password);
             if (!$row) {
                 $this->logger->fatal(__METHOD__ . " select user returned " . $row . " user id=" . $userId . " password=" . $password);
-                throw new AuthException('ユーザーIDまたはパスワードに誤りがあります。');
+                throw new AuthException('Invalid user ID or password');
             }
         } catch (RecordNotFoundException $e) {
             $this->logger->fatal(__METHOD__ . " select user thrown exeption " . $e . " user id=" . $userId . " password=" . $password);
-            throw new AuthException('ユーザーIDまたはパスワードに誤りがあります。');
+            throw new AuthException('Invalid user ID or password');
         }
 
         $startTime = ChandraConst::LOGIN_TIMEOUT > 0 ? time() : null;

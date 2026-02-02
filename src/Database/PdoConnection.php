@@ -67,12 +67,14 @@ class PdoConnection
     {
         $config = parse_ini_file($path);
         if ($config === false) {
-            throw new RuntimeException('DB 設定ファイルを読み込めません: ' . $path);
+            // DB 設定ファイルを読み込めません:
+            throw new RuntimeException('Unable to load DB config file: ' . $path);
         }
 
         foreach (array('dbhost', 'dbname', 'dbuser', 'dbpass') as $key) {
             if (!array_key_exists($key, $config)) {
-                throw new RuntimeException('DB 設定ファイルに必要なキーが不足しています: ' . $key);
+                // DB 設定ファイルに必要なキーが不足しています
+                throw new RuntimeException('Missing required key in DB config file: ' . $key);
             }
         }
 
