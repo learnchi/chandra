@@ -11,4 +11,7 @@ class ChandraConst
 {
     /** ログインタイムアウト秒（0で無効） */
     public const LOGIN_TIMEOUT = 0;
+    /** 画像アップロードの最大サイズ（バイト） */
+    public const MAX_UPLOAD_IMAGE_SIZE = 2000000;
+
 }

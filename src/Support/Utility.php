@@ -2,6 +2,8 @@
 
 namespace Studiogau\Chandra\Support;
 
+use Studiogau\Chandra\Config\ChandraConst;
+
 /**
  * フレームワーク共通で使い回す小さなヘルパー群。
  */
@@ -159,17 +161,16 @@ final class Utility
 
     /**
      * 画像ファイルサイズをチェックする。
+     * ChandraConst::MAX_UPLOAD_IMAGE_SIZE を上限として扱う。
      *
-     * @param int $fileSize バイト数
+     * @param int      $fileSize バイト数
+     * @param int|null $maxBytes 最大サイズ（バイト）。指定時はこちらを優先する。
      * @return bool チェックOKならtrue
      */
-    public static function checkImageFileSize($fileSize)
+    public static function checkImageFileSize($fileSize, ?int $maxBytes = null)
     {
-        $chkResult = true;
-        if ($fileSize > 2000000) {  // TODO: 定数化する UtilConst::MAX_UPLOAD_IMAGE_SIZE
-            $chkResult = false;
-        }
-        return $chkResult;
+        $limit = $maxBytes ?? ChandraConst::MAX_UPLOAD_IMAGE_SIZE;
+        return $fileSize <= $limit;
     }
 
     /**

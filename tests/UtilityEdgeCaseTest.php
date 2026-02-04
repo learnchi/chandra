@@ -29,6 +29,16 @@ final class UtilityEdgeCaseTest extends TestCase
     }
 
     /**
+     * 目的: 画像サイズの上限を引数で指定できることを確認する。
+     * 期待: 指定した上限以内は true、超過は false になる。
+     */
+    public function testCheckImageFileSizeUsesCustomLimit(): void
+    {
+        $this->assertTrue(Utility::checkImageFileSize(1000, 1000));
+        $this->assertFalse(Utility::checkImageFileSize(1001, 1000));
+    }
+
+    /**
      * 目的: checkAlphanumeric が片側境界のみ指定された場合は false を返すことを確認する。
      * 期待: 片側のみの指定では false になる。
      */
