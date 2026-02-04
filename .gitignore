@@ -23,6 +23,7 @@ composer.lock
 # 環境設定
 .env
 dbconfig.ini
+tests/dbconfig.local.ini
 
 # OS/ツールによる一時ファイル
 *.~*

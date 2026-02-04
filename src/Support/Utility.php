@@ -112,6 +112,7 @@ final class Utility
 
     /**
      * 半角英数字かどうかをチェックする（長さ範囲も指定可）。
+     * 片側のみの範囲指定の場合は false を返す。
      *
      * @param string   $str  入力値
      * @param int|null $from 許容最小文字数（任意）
