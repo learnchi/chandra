@@ -17,6 +17,26 @@ final class UtilityTest extends TestCase
         mkdir($this->workDir, 0777, true);
     }
 
+    /**
+     * CSRF 用の hidden container と POST 用配列を生成できることを確認する。
+     */
+    public function testCsrfContainerAndPostFields(): void
+    {
+        $_SERVER['SCRIPT_NAME'] = '/noblestock/public/product_list.php';
+        $_SESSION = [];
+
+        $html = Utility::renderCsrfContainer('product_list.barcode_ajax', 'barcode-output-csrf');
+        $this->assertStringContainsString('id="barcode-output-csrf"', $html);
+        $this->assertStringContainsString('name="_csrf_scope"', $html);
+        $this->assertStringContainsString('value="product_list.barcode_ajax"', $html);
+        $this->assertStringContainsString('name="_csrf_token"', $html);
+
+        $fields = Utility::issueCsrfPostFields('product_list.barcode_ajax');
+        $this->assertSame('product_list.barcode_ajax', $fields[Utility::getCsrfScopeFieldName()]);
+        $this->assertArrayHasKey(Utility::getCsrfFieldName(), $fields);
+        $this->assertNotSame('', $fields[Utility::getCsrfFieldName()]);
+    }
+
     protected function tearDown(): void
     {
         foreach ((array) glob($this->workDir . DIRECTORY_SEPARATOR . '*') as $file) {

@@ -70,6 +70,137 @@ final class Utility
     }
 
     /**
+     * CSRFトークン用 hidden input の name 属性を返す。
+     *
+     * @return string
+     */
+    public static function getCsrfFieldName(): string
+    {
+        return '_csrf_token';
+    }
+
+    /**
+     * CSRFトークン用 scope hidden input の name 属性を返す。
+     *
+     * @return string
+     */
+    public static function getCsrfScopeFieldName(): string
+    {
+        return '_csrf_scope';
+    }
+
+    /**
+     * 指定スコープ用の CSRF トークンを発行してセッションに保存する。
+     *
+     * @param string $scope 画面や操作単位の識別子
+     * @return string
+     */
+    public static function issueCsrfToken(string $scope): string
+    {
+        $tokens = self::getCsrfTokenMap();
+        if (isset($tokens[$scope]) && is_string($tokens[$scope]) && $tokens[$scope] !== '') {
+            return $tokens[$scope];
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $tokens[$scope] = $token;
+        $_SESSION[self::csrfSessionKey()] = $tokens;
+
+        return $token;
+    }
+
+    /**
+     * CSRF トークンを hidden input として出力する HTML を返す。
+     *
+     * @param string $scope 画面や操作単位の識別子
+     * @return string
+     */
+    public static function renderCsrfHiddenInput(string $scope): string
+    {
+        $scopeName = htmlspecialchars(self::getCsrfScopeFieldName(), ENT_QUOTES, 'UTF-8');
+        $scopeValue = htmlspecialchars($scope, ENT_QUOTES, 'UTF-8');
+        $name = htmlspecialchars(self::getCsrfFieldName(), ENT_QUOTES, 'UTF-8');
+        $value = htmlspecialchars(self::issueCsrfToken($scope), ENT_QUOTES, 'UTF-8');
+
+        return '<input type="hidden" name="' . $scopeName . '" value="' . $scopeValue . '">'
+            . '<input type="hidden" name="' . $name . '" value="' . $value . '">';
+    }
+
+    /**
+     * AJAX 用の CSRF hidden input を包むコンテナ HTML を返す。
+     *
+     * @param string $scope AJAX 通信で使う CSRF scope
+     * @param string $containerId コンテナ要素の id 属性
+     * @param string $class コンテナ要素の class 属性
+     * @return string
+     */
+    public static function renderCsrfContainer(string $scope, string $containerId, string $class = 'd-none'): string
+    {
+        $id = htmlspecialchars($containerId, ENT_QUOTES, 'UTF-8');
+        $classAttr = htmlspecialchars($class, ENT_QUOTES, 'UTF-8');
+
+        return '<div id="' . $id . '" class="' . $classAttr . '">'
+            . self::renderCsrfHiddenInput($scope)
+            . '</div>';
+    }
+
+    /**
+     * AJAX POST や JSON 応答に載せやすい CSRF 2項目を配列で返す。
+     *
+     * @param string $scope AJAX 通信で使う CSRF scope
+     * @return array<string, string>
+     */
+    public static function issueCsrfPostFields(string $scope): array
+    {
+        return [
+            self::getCsrfScopeFieldName() => $scope,
+            self::getCsrfFieldName() => self::issueCsrfToken($scope),
+        ];
+    }
+
+    /**
+     * 指定スコープの CSRF トークンを検証する。トークンは検証後に破棄する。
+     *
+     * @param string      $scope          画面や操作単位の識別子
+     * @param string|null $submittedToken POST されたトークン
+     * @return bool
+     */
+    public static function validateCsrfToken(string $scope, ?string $submittedToken): bool
+    {
+        $tokens = self::getCsrfTokenMap();
+        $storedToken = $tokens[$scope] ?? null;
+
+        unset($tokens[$scope]);
+        $_SESSION[self::csrfSessionKey()] = $tokens;
+
+        if (!is_string($storedToken) || $storedToken === '') {
+            return false;
+        }
+
+        if (!is_string($submittedToken) || $submittedToken === '') {
+            return false;
+        }
+
+        return hash_equals($storedToken, $submittedToken);
+    }
+
+    /**
+     * POST された scope と token の組み合わせで CSRF トークンを検証する。
+     *
+     * @param string|null $submittedScope POST された scope
+     * @param string|null $submittedToken POST された token
+     * @return bool
+     */
+    public static function validatePostedCsrfToken(?string $submittedScope, ?string $submittedToken): bool
+    {
+        if (!is_string($submittedScope) || $submittedScope === '') {
+            return false;
+        }
+
+        return self::validateCsrfToken($submittedScope, $submittedToken);
+    }
+
+    /**
      * 画像ファイル名の形式をチェックする。
      *
      * @param string $str 画像ファイル名
@@ -380,6 +511,25 @@ final class Utility
             $fnames[] = $fileNm;
         }
         return $fnames;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function getCsrfTokenMap(): array
+    {
+        $tokens = $_SESSION[self::csrfSessionKey()] ?? null;
+
+        return is_array($tokens) ? $tokens : [];
+    }
+
+    private static function csrfSessionKey(): string
+    {
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        $dirs = explode('/', $script);
+        $project = $dirs[1] ?? '';
+
+        return $project . 'csrf_tokens';
     }
 
     /**

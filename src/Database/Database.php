@@ -26,7 +26,7 @@ class Database
 
     /** @var PdoConnection */
     private $connection;
-    private $logger;
+    private Logger $logger;
     private $currentUserId;
 
     /**
