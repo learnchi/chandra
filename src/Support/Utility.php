@@ -70,6 +70,20 @@ final class Utility
     }
 
     /**
+     * HTML 出力用に文字列をエスケープする。
+     *
+     * HTML 本文や属性値へ埋め込む前提の最小 helper。
+     * JavaScript 文字列や URL など、別文脈のエスケープ用途には使わない。
+     *
+     * @param mixed $value 出力対象の値
+     * @return string
+     */
+    public static function h(mixed $value): string
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
      * CSRFトークン用 hidden input の name 属性を返す。
      *
      * @return string
