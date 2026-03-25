@@ -56,6 +56,33 @@ class Database
     }
 
     /**
+     * 環境変数からインスタンスを生成する。
+     *
+     * @param Logger|null           $logger
+     * @param array<string, string> $envMap
+     * @return self
+     */
+    public static function fromEnv(?Logger $logger = null, array $envMap = array())
+    {
+        $connection = PdoConnection::fromEnv($envMap);
+        return new self($connection, $logger);
+    }
+
+    /**
+     * 環境変数で設定ソースを切り替えてインスタンスを生成する。
+     *
+     * @param string               $path
+     * @param Logger|null          $logger
+     * @param array<string, mixed> $options
+     * @return self
+     */
+    public static function fromConfiguredSource(string $path, ?Logger $logger = null, array $options = array())
+    {
+        $connection = PdoConnection::fromConfiguredSource($path, $options);
+        return new self($connection, $logger);
+    }
+
+    /**
      * 件数を取得するための実行ヘルパー。
      *
      * @param string $sql       実行するSQL

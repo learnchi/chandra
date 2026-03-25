@@ -74,6 +74,21 @@ final class DatabaseTest extends TestCase
     }
 
     /**
+     * fromConfiguredSource で未対応のソース指定を拒否することを確認する。
+     */
+    public function testFromConfiguredSourceThrowsWhenSourceUnsupported(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unsupported DB config source: invalid');
+
+        $this->withTemporaryEnv([
+            PdoConnection::CONFIG_SOURCE_ENV => 'invalid',
+        ], static function (): void {
+            Database::fromConfiguredSource(__FILE__, new DatabaseNullLogger());
+        });
+    }
+
+    /**
      * fetchCount が件数を返すことを確認する。
      */
     public function testFetchCountReturnsRowCount(): void
@@ -211,5 +226,37 @@ final class DatabaseTest extends TestCase
             ->fetch(\PDO::FETCH_ASSOC);
 
         $this->assertSame(9, (int) $row['quantity']);
+    }
+
+    /**
+     * @param array<string, string|null> $values
+     * @param callable                   $callback
+     * @return void
+     */
+    private function withTemporaryEnv(array $values, callable $callback): void
+    {
+        $previous = [];
+        foreach ($values as $name => $value) {
+            $current = getenv($name);
+            $previous[$name] = ($current === false) ? null : (string) $current;
+
+            if ($value === null) {
+                putenv($name);
+            } else {
+                putenv($name . '=' . $value);
+            }
+        }
+
+        try {
+            $callback();
+        } finally {
+            foreach ($previous as $name => $value) {
+                if ($value === null) {
+                    putenv($name);
+                } else {
+                    putenv($name . '=' . $value);
+                }
+            }
+        }
     }
 }

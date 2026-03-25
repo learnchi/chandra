@@ -25,4 +25,88 @@ final class PdoConnectionTest extends TestCase
             @unlink($iniPath);
         }
     }
+
+    /**
+     * fromEnv で必須環境変数が欠けていると RuntimeException を投げることを確認する。
+     */
+    public function testFromEnvThrowsWhenRequiredEnvMissing(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Missing required environment variable: DB_HOST');
+
+        $this->withTemporaryEnv([
+            'DB_HOST' => null,
+            'DB_NAME' => null,
+            'DB_USER' => null,
+            'DB_PASS' => null,
+        ], static function (): void {
+            PdoConnection::fromEnv();
+        });
+    }
+
+    /**
+     * 切替スイッチが env のときは INI ではなく環境変数経由で解決することを確認する。
+     */
+    public function testFromConfiguredSourceUsesEnvWhenSwitched(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Missing required environment variable: DB_HOST');
+
+        $this->withTemporaryEnv([
+            PdoConnection::CONFIG_SOURCE_ENV => 'env',
+            'DB_HOST' => null,
+            'DB_NAME' => null,
+            'DB_USER' => null,
+            'DB_PASS' => null,
+        ], static function (): void {
+            PdoConnection::fromConfiguredSource(__FILE__);
+        });
+    }
+
+    /**
+     * 未対応の設定ソースを指定した場合は RuntimeException を投げることを確認する。
+     */
+    public function testFromConfiguredSourceThrowsWhenSourceUnsupported(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unsupported DB config source: invalid');
+
+        $this->withTemporaryEnv([
+            PdoConnection::CONFIG_SOURCE_ENV => 'invalid',
+        ], static function (): void {
+            PdoConnection::fromConfiguredSource(__FILE__);
+        });
+    }
+
+    /**
+     * @param array<string, string|null> $values
+     * @param callable                   $callback
+     * @return void
+     */
+    private function withTemporaryEnv(array $values, callable $callback): void
+    {
+        $previous = [];
+        foreach ($values as $name => $value) {
+            $current = getenv($name);
+            $previous[$name] = ($current === false) ? null : (string) $current;
+
+            if ($value === null) {
+                putenv($name);
+            } else {
+                putenv($name . '=' . $value);
+            }
+        }
+
+        try {
+            $callback();
+        } finally {
+            foreach ($previous as $name => $value) {
+                if ($value === null) {
+                    putenv($name);
+                } else {
+                    putenv($name . '=' . $value);
+                }
+            }
+        }
+    }
 }

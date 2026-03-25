@@ -11,6 +11,18 @@ use RuntimeException;
  */
 class PdoConnection
 {
+    public const CONFIG_SOURCE_ENV = 'CHANDRA_DB_SOURCE';
+
+    /** @var array<string, string> */
+    public const DEFAULT_ENV_MAP = array(
+        'dbhost' => 'DB_HOST',
+        'dbport' => 'DB_PORT',
+        'dbname' => 'DB_NAME',
+        'dbuser' => 'DB_USER',
+        'dbpass' => 'DB_PASS',
+        'charset' => 'DB_CHARSET',
+    );
+
     /**
      * @var PDO|null
      */
@@ -43,10 +55,10 @@ class PdoConnection
 
     /**
      * @param string      $dsn      接続文字列
-     * @param string      $username 接続ユーザー
-     * @param string      $password 接続パスワード
+     * @param string      $username DBユーザー
+     * @param string      $password DBパスワード
      * @param array       $options  PDO オプション
-     * @param string|null $charset  SET NAMES で設定するcharset
+     * @param string|null $charset  SET NAMES で設定する charset
      */
     public function __construct($dsn, $username, $password, array $options = array(), $charset = 'utf8')
     {
@@ -78,7 +90,11 @@ class PdoConnection
             }
         }
 
-        $dsn = sprintf('mysql:host=%s;dbname=%s', $config['dbhost'], $config['dbname']);
+        $dsn = self::buildMySqlDsn(
+            (string) $config['dbhost'],
+            (string) $config['dbname'],
+            $config['dbport'] ?? null
+        );
         $charset = isset($config['charset']) ? $config['charset'] : 'utf8';
 
         $options = array();
@@ -93,7 +109,70 @@ class PdoConnection
     }
 
     /**
-     * 実際の接続を開始する。
+     * 環境変数からインスタンスを生成する。
+     *
+     * @param array<string, string> $envMap 設定キー => 環境変数名
+     * @return self
+     */
+    public static function fromEnv(array $envMap = array())
+    {
+        $map = array_replace(self::DEFAULT_ENV_MAP, $envMap);
+
+        $config = array();
+        foreach (array('dbhost', 'dbname', 'dbuser', 'dbpass') as $key) {
+            $envName = $map[$key] ?? '';
+            $value = self::getEnvValue($envName);
+            if ($value === null) {
+                throw new RuntimeException('Missing required environment variable: ' . $envName);
+            }
+            $config[$key] = $value;
+        }
+
+        $dsn = self::buildMySqlDsn(
+            $config['dbhost'],
+            $config['dbname'],
+            self::getEnvValue($map['dbport'] ?? '')
+        );
+        $charset = self::getEnvValue($map['charset'] ?? '') ?? 'utf8';
+
+        $connection = new self($dsn, $config['dbuser'], $config['dbpass'], array(), $charset);
+        $connection->connect();
+
+        return $connection;
+    }
+
+    /**
+     * 設定ソースを切り替えて接続を生成する。
+     *
+     * @param string               $path    INI ファイルパス
+     * @param array<string, mixed> $options switch_env_name/default_source/env_map を指定可能
+     * @return self
+     */
+    public static function fromConfiguredSource($path, array $options = array())
+    {
+        $switchEnvName = (string) ($options['switch_env_name'] ?? self::CONFIG_SOURCE_ENV);
+        $defaultSource = strtolower(trim((string) ($options['default_source'] ?? 'ini')));
+        $source = self::getEnvValue($switchEnvName);
+        $source = strtolower(trim($source ?? $defaultSource));
+
+        if ($source === '' || $source === 'ini') {
+            return self::fromIni($path);
+        }
+
+        if ($source === 'env') {
+            $envMap = $options['env_map'] ?? array();
+            if (!is_array($envMap)) {
+                throw new RuntimeException('env_map must be an array.');
+            }
+
+            return self::fromEnv($envMap);
+        }
+
+        throw new RuntimeException('Unsupported DB config source: ' . $source);
+    }
+
+    /**
+     * 現在の接続を開始する。
      *
      * @return void
      */
@@ -121,7 +200,7 @@ class PdoConnection
     }
 
     /**
-     * 現在の PDO インスタンスを取得する。
+     * 現在の PDO インスタンスを返す。
      *
      * @return PDO
      */
@@ -172,5 +251,39 @@ class PdoConnection
     public function rollback()
     {
         return $this->getPdo()->rollBack();
+    }
+
+    /**
+     * @param string      $host
+     * @param string      $dbName
+     * @param string|null $port
+     * @return string
+     */
+    private static function buildMySqlDsn($host, $dbName, $port = null)
+    {
+        $dsn = sprintf('mysql:host=%s;dbname=%s', $host, $dbName);
+        if ($port !== null && $port !== '') {
+            $dsn .= ';port=' . $port;
+        }
+
+        return $dsn;
+    }
+
+    /**
+     * @param string $envName
+     * @return string|null
+     */
+    private static function getEnvValue($envName)
+    {
+        if (!is_string($envName) || $envName === '') {
+            return null;
+        }
+
+        $value = getenv($envName);
+        if ($value === false || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
     }
 }
