@@ -29,6 +29,29 @@ final class AuthServiceNullLogger extends Logger
     }
 }
 
+/**
+ * テスト用にログ内容を保持するLogger。
+ */
+final class AuthServiceSpyLogger extends Logger
+{
+    /** @var array<int, array{level: int, message: string}> */
+    public array $records = [];
+
+    public function __construct()
+    {
+    }
+
+    public function log($level, $message)
+    {
+        $this->records[] = [
+            'level' => (int) $level,
+            'message' => (string) $message,
+        ];
+
+        return true;
+    }
+}
+
 final class AuthServiceTest extends TestCase
 {
     private array $backupSession = [];
@@ -151,6 +174,30 @@ final class AuthServiceTest extends TestCase
     /**
      * セッションにユーザーが無い場合 checkUserSession が false を返すことを確認する。
      */
+    /**
+     * ログイン失敗時のログに平文パスワードが含まれないことを確認する。
+     */
+    public function testLoginDoesNotLogPasswordOnFailure(): void
+    {
+        $repo = new class implements UserRepositoryInterface {
+            public function findByCredentials(string $userId, string $password): ?array
+            {
+                return null;
+            }
+        };
+        $logger = new AuthServiceSpyLogger();
+        $service = new AuthService($repo, $logger);
+
+        try {
+            $service->login('missing', 'plain-secret-password');
+            $this->fail('AuthException was not thrown.');
+        } catch (AuthException $exception) {
+            $this->assertCount(1, $logger->records);
+            $this->assertStringContainsString('user_id=missing', $logger->records[0]['message']);
+            $this->assertStringNotContainsString('plain-secret-password', $logger->records[0]['message']);
+        }
+    }
+
     public function testCheckUserSessionReturnsFalseWhenNoUser(): void
     {
         $repo = $this->createStub(UserRepositoryInterface::class);
