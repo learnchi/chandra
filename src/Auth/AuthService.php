@@ -121,6 +121,18 @@ final class AuthService
             $startTime
         );
 
+        // 認証前に使われていたセッションIDを引き継がない。
+        if (!SessionHelper::regenerateSessionId()) {
+            // 安全側に倒し、認証済みセッションを作らずに失敗させる。
+            SessionHelper::delSessionAll();
+            $this->logger->fatal(
+                __METHOD__
+                . ' failed to regenerate session id'
+                . ' login_id=' . $userId
+            );
+            throw new AuthException('Failed to establish a secure session');
+        }
+
         SessionHelper::setUser($loginUser);
         $this->logger->info(
             __METHOD__
@@ -137,7 +149,7 @@ final class AuthService
      */
     public function logout(): void
     {
-        SessionHelper::delUser();
+        SessionHelper::delSessionAll();
     }
 
     /**
@@ -152,7 +164,10 @@ final class AuthService
             return null;
         }
 
-        $loginUser = @unserialize($user);
+        $loginUser = is_string($user)
+            ? @unserialize($user, ['allowed_classes' => [LoginUser::class]])
+            : null;
+
         return $loginUser instanceof LoginUser ? $loginUser : null;
     }
 

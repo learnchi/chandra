@@ -14,6 +14,7 @@ final class AuthSessionIntegrationTest extends TestCase
 {
     private array $backupSession = [];
     private array $backupServer = [];
+    private array $backupCookies = [];
 
     protected function setUp(): void
     {
@@ -25,8 +26,10 @@ final class AuthSessionIntegrationTest extends TestCase
 
         $this->backupSession = $_SESSION ?? [];
         $this->backupServer = $_SERVER;
+        $this->backupCookies = $_COOKIE ?? [];
 
         $_SESSION = [];
+        $_COOKIE = [];
         $_SERVER['SCRIPT_NAME'] = '/chandra/index.php';
     }
 
@@ -34,6 +37,7 @@ final class AuthSessionIntegrationTest extends TestCase
     {
         $_SESSION = $this->backupSession;
         $_SERVER = $this->backupServer;
+        $_COOKIE = $this->backupCookies;
         parent::tearDown();
     }
 
@@ -67,6 +71,37 @@ final class AuthSessionIntegrationTest extends TestCase
 
         $this->assertNull($service->getCurrentUser());
         $this->assertNull(SessionHelper::getUser());
+    }
+
+    /**
+     * logout 時にセッション全体が破棄され、セッションCookieも無効化されることを確認する。
+     */
+    public function testLogoutInvalidatesSessionAndExpiresSessionCookie(): void
+    {
+        $repo = new class implements UserRepositoryInterface {
+            public function findByCredentials(string $userId, string $password): ?array
+            {
+                return [
+                    'user_id' => $userId,
+                    'user_name' => 'Tester',
+                    'permissions' => 'read,write',
+                ];
+            }
+        };
+
+        $service = new AuthService($repo, new AuthSessionNullLogger());
+
+        $this->assertTrue($service->login('user01', 'secret'));
+        SessionHelper::setPref('theme', 'dark');
+        $_COOKIE[session_name()] = session_id();
+
+        $service->logout();
+
+        $this->assertSame([], $_SESSION);
+        $this->assertArrayNotHasKey(session_name(), $_COOKIE);
+        $this->assertNull($service->getCurrentUser());
+        $this->assertNull(SessionHelper::getUser());
+        $this->assertNull(SessionHelper::getPref('theme'));
     }
 }
 

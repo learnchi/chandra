@@ -109,6 +109,30 @@ final class AuthServiceTest extends TestCase
         $this->assertTrue($currentUser->can('write'));
     }
 
+    /**
+     * ログイン成功時にセッションIDが再生成されることを確認する。
+     */
+    public function testLoginRegeneratesSessionIdOnSuccess(): void
+    {
+        $repo = new class implements UserRepositoryInterface {
+            public function findByCredentials(string $userId, string $password): ?array
+            {
+                return [
+                    'user_id' => $userId,
+                    'user_name' => 'Tester',
+                    'permissions' => 'read',
+                ];
+            }
+        };
+
+        $service = new AuthService($repo, new AuthServiceNullLogger());
+        $beforeSessionId = session_id();
+
+        $this->assertNotSame('', $beforeSessionId);
+        $this->assertTrue($service->login('user01', 'secret'));
+        $this->assertNotSame($beforeSessionId, session_id());
+    }
+
     public function testLoginAcceptsPermissionsArray(): void
     {
         $repo = new class implements UserRepositoryInterface {

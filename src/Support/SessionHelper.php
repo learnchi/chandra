@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Studiogau\Chandra\Support;
 
 use Studiogau\Chandra\Auth\LoginUser;
-use Studiogau\Chandra\Logging\Logger;
 
 /**
  * $_SESSION をラップするヘルパー。
  *
- * - キーはSCRIPT_NAMEから取得したプロジェクト名でプレフィックスする。
+ * - キーは SCRIPT_NAME から取得したプロジェクト名でプレフィックスする。
  * - セッション開始は自動で行わないため、必要に応じて session_start() を呼ぶこと。
  */
 final class SessionHelper
@@ -59,14 +58,15 @@ final class SessionHelper
         if ($structMap !== null && array_key_exists($func, $structMap) && array_key_exists($key, $structMap[$func])) {
             return $structMap[$func][$key];
         }
+
         return null;
     }
 
     /**
      * structデータを削除する。
      *
-     * @param string      $func 画面・機能名
-     * @param string|null $key  キー名（nullならfunc単位で削除）
+     * @param string $func 画面・機能名
+     * @param string|null $key キー名（nullならfunc単位で削除）
      * @return void
      */
     public static function delData(string $func, ?string $key = null): void
@@ -114,16 +114,32 @@ final class SessionHelper
     }
 
     /**
-     * セッションとCookieを完全に破棄する。
+     * 権限変更後にセッションIDを再生成する。
+     *
+     * セッション固定攻撃対策として、主にログイン成功後の呼び出しを想定する。
+     *
+     * @param bool $deleteOldSession 旧セッションを削除する場合 true
+     * @return bool 再生成成功時 true
+     */
+    public static function regenerateSessionId(bool $deleteOldSession = true): bool
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return false;
+        }
+
+        return session_regenerate_id($deleteOldSession);
+    }
+
+    /**
+     * 現在のセッションを完全に破棄し、セッションCookieも失効させる。
      *
      * @return void
      */
     public static function delSessionAll(): void
     {
         $_SESSION = [];
-        if (isset($_COOKIE[session_name()])) {
-            setcookie(session_name(), '', time() - 42000, '/');
-        }
+        self::expireSessionCookie();
+
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
         }
@@ -132,8 +148,8 @@ final class SessionHelper
     /**
      * preference情報を保存する。
      *
-     * @param string $key   キー名
-     * @param mixed  $value 値
+     * @param string $key キー名
+     * @param mixed $value 値
      * @return void
      */
     public static function setPref(string $key, mixed $value): void
@@ -161,6 +177,7 @@ final class SessionHelper
         if (!empty($prefMap) && array_key_exists($key, $prefMap)) {
             return $prefMap[$key];
         }
+
         return null;
     }
 
@@ -178,7 +195,7 @@ final class SessionHelper
         }
 
         if ($key === null) {
-            unset($prefMap);
+            $prefMap = null;
         } elseif (array_key_exists($key, $prefMap)) {
             unset($prefMap[$key]);
         }
@@ -230,6 +247,7 @@ final class SessionHelper
         if (!empty($structMap) && array_key_exists($key, $structMap)) {
             $value = $structMap[$key];
         }
+
         return $value;
     }
 
@@ -252,16 +270,6 @@ final class SessionHelper
     public static function getUser(): mixed
     {
         return self::getSession(self::USER_SESSION_KEY);
-    }
-
-    /**
-     * ログインユーザー情報を削除する。
-     *
-     * @return bool 削除結果
-     */
-    public static function delUser(): bool
-    {
-        return self::delSession(self::USER_SESSION_KEY);
     }
 
     /**
@@ -294,6 +302,7 @@ final class SessionHelper
     {
         $msg = self::getSession(self::FLUSH_ERROR) ?? null;
         self::delSession(self::FLUSH_ERROR);
+
         return $msg;
     }
 
@@ -327,14 +336,15 @@ final class SessionHelper
     {
         $msg = self::getSession(self::FLUSH_SUCCESS) ?? null;
         self::delSession(self::FLUSH_SUCCESS);
+
         return $msg;
     }
 
     /**
      * セッションキーへ値を保存する（プレフィックス付き）。
      *
-     * @param string $key   セッションキー
-     * @param mixed  $value 保存する値
+     * @param string $key セッションキー
+     * @param mixed $value 保存する値
      * @return bool 保存結果
      */
     private static function setSession(string $key, mixed $value): bool
@@ -345,7 +355,8 @@ final class SessionHelper
 
         $pkey = self::projectPrefix($key);
         $_SESSION[$pkey] = $value;
-        return isset($_SESSION[$pkey]);
+
+        return array_key_exists($pkey, $_SESSION);
     }
 
     /**
@@ -361,6 +372,7 @@ final class SessionHelper
         }
 
         $pkey = self::projectPrefix($key);
+
         return $_SESSION[$pkey] ?? null;
     }
 
@@ -378,7 +390,39 @@ final class SessionHelper
 
         $pkey = self::projectPrefix($key);
         unset($_SESSION[$pkey]);
+
         return !isset($_SESSION[$pkey]);
+    }
+
+    /**
+     * 現在のセッションCookie属性を維持したまま、Cookieを失効させる。
+     *
+     * @return void
+     */
+    private static function expireSessionCookie(): void
+    {
+        if ((string) ini_get('session.use_cookies') === '0' || headers_sent()) {
+            return;
+        }
+
+        $params = session_get_cookie_params();
+        $options = [
+            'expires' => time() - 42000,
+            'path' => $params['path'] ?: '/',
+            'secure' => (bool) $params['secure'],
+            'httponly' => (bool) $params['httponly'],
+        ];
+
+        if (!empty($params['domain'])) {
+            $options['domain'] = $params['domain'];
+        }
+
+        if (!empty($params['samesite'])) {
+            $options['samesite'] = $params['samesite'];
+        }
+
+        setcookie(session_name(), '', $options);
+        unset($_COOKIE[session_name()]);
     }
 
     /**
@@ -392,6 +436,7 @@ final class SessionHelper
         $script = $_SERVER['SCRIPT_NAME'] ?? '';
         $dirs = explode('/', $script);
         $project = $dirs[1] ?? '';
+
         return $project . $key;
     }
 }
