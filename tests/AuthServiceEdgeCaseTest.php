@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use Studiogau\Chandra\Auth\AuthService;
+use Studiogau\Chandra\Auth\LoginCredentials;
 use Studiogau\Chandra\Auth\LoginUser;
 use Studiogau\Chandra\Auth\UserRepositoryInterface;
 use Studiogau\Chandra\Logging\Logger;
@@ -54,7 +55,7 @@ final class AuthServiceEdgeCaseTest extends TestCase
         };
 
         $service = new AuthService($repo, new AuthServiceNullLoggerForEdgeCase());
-        $this->assertTrue($service->login('user01', 'secret'));
+        $this->assertInstanceOf(LoginUser::class, $service->login(new LoginCredentials('user01', 'secret')));
 
         $user = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $user);
@@ -79,7 +80,7 @@ final class AuthServiceEdgeCaseTest extends TestCase
         };
 
         $service = new AuthService($repo, new AuthServiceNullLoggerForEdgeCase());
-        $this->assertTrue($service->login('user02', 'secret'));
+        $this->assertInstanceOf(LoginUser::class, $service->login(new LoginCredentials('user02', 'secret')));
 
         $user = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $user);

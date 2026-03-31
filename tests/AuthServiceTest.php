@@ -4,6 +4,7 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 use Studiogau\Chandra\Auth\AuthException;
 use Studiogau\Chandra\Auth\AuthService;
+use Studiogau\Chandra\Auth\LoginCredentials;
 use Studiogau\Chandra\Auth\LoginUser;
 use Studiogau\Chandra\Auth\UserRepositoryInterface;
 use Studiogau\Chandra\Database\Database;
@@ -100,9 +101,9 @@ final class AuthServiceTest extends TestCase
 
         $service = new AuthService($repo, new AuthServiceNullLogger());
 
-        $result = $service->login('user01', 'secret');
+        $result = $service->login(new LoginCredentials('user01', 'secret'));
 
-        $this->assertTrue($result);
+        $this->assertInstanceOf(LoginUser::class, $result);
         $currentUser = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $currentUser);
         $this->assertSame('user01', $currentUser->getUserId());
@@ -129,7 +130,7 @@ final class AuthServiceTest extends TestCase
         $beforeSessionId = session_id();
 
         $this->assertNotSame('', $beforeSessionId);
-        $this->assertTrue($service->login('user01', 'secret'));
+        $this->assertInstanceOf(LoginUser::class, $service->login(new LoginCredentials('user01', 'secret')));
         $this->assertNotSame($beforeSessionId, session_id());
     }
 
@@ -148,9 +149,9 @@ final class AuthServiceTest extends TestCase
 
         $service = new AuthService($repo, new AuthServiceNullLogger());
 
-        $result = $service->login('user02', 'secret');
+        $result = $service->login(new LoginCredentials('user02', 'secret'));
 
-        $this->assertTrue($result);
+        $this->assertInstanceOf(LoginUser::class, $result);
         $currentUser = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $currentUser);
         $this->assertSame('user02', $currentUser->getUserId());
@@ -174,7 +175,7 @@ final class AuthServiceTest extends TestCase
         $service = new AuthService($repo, new AuthServiceNullLogger());
 
         $this->expectException(AuthException::class);
-        $service->login('missing', 'password');
+        $service->login(new LoginCredentials('missing', 'password'));
     }
 
     /**
@@ -192,7 +193,7 @@ final class AuthServiceTest extends TestCase
         $service = new AuthService($repo, new AuthServiceNullLogger());
 
         $this->expectException(AuthException::class);
-        $service->login('user', 'pw');
+        $service->login(new LoginCredentials('user', 'pw'));
     }
 
     /**
@@ -213,7 +214,7 @@ final class AuthServiceTest extends TestCase
         $service = new AuthService($repo, $logger);
 
         try {
-            $service->login('missing', 'plain-secret-password');
+            $service->login(new LoginCredentials('missing', 'plain-secret-password'));
             $this->fail('AuthException was not thrown.');
         } catch (AuthException $exception) {
             $this->assertCount(1, $logger->records);

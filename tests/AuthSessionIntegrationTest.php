@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use Studiogau\Chandra\Auth\AuthService;
+use Studiogau\Chandra\Auth\LoginCredentials;
 use Studiogau\Chandra\Auth\LoginUser;
 use Studiogau\Chandra\Auth\UserRepositoryInterface;
 use Studiogau\Chandra\Logging\Logger;
@@ -42,8 +43,8 @@ final class AuthSessionIntegrationTest extends TestCase
     }
 
     /**
-     * 目的: AuthService と SessionHelper の連携でログイン〜チェック〜ログアウトが成立することを確認する。
-     * 期待: login/checkUserSession が true、logout 後はユーザーが取得できない。
+     * AuthService と SessionHelper の連携で、
+     * ログイン後にセッションが成立し、logout 後に消えることを確認する。
      */
     public function testLoginCheckLogoutFlow(): void
     {
@@ -60,7 +61,7 @@ final class AuthSessionIntegrationTest extends TestCase
 
         $service = new AuthService($repo, new AuthSessionNullLogger());
 
-        $this->assertTrue($service->login('user01', 'secret'));
+        $this->assertInstanceOf(LoginUser::class, $service->login(new LoginCredentials('user01', 'secret')));
         $this->assertTrue($service->checkUserSession());
 
         $user = $service->getCurrentUser();
@@ -74,7 +75,7 @@ final class AuthSessionIntegrationTest extends TestCase
     }
 
     /**
-     * logout 時にセッション全体が破棄され、セッションCookieも無効化されることを確認する。
+     * logout でセッション全体が無効化され、セッション Cookie も削除されることを確認する。
      */
     public function testLogoutInvalidatesSessionAndExpiresSessionCookie(): void
     {
@@ -91,7 +92,7 @@ final class AuthSessionIntegrationTest extends TestCase
 
         $service = new AuthService($repo, new AuthSessionNullLogger());
 
-        $this->assertTrue($service->login('user01', 'secret'));
+        $this->assertInstanceOf(LoginUser::class, $service->login(new LoginCredentials('user01', 'secret')));
         SessionHelper::setPref('theme', 'dark');
         $_COOKIE[session_name()] = session_id();
 
@@ -116,4 +117,3 @@ final class AuthSessionNullLogger extends Logger
         return true;
     }
 }
-
