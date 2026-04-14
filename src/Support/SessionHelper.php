@@ -131,7 +131,9 @@ final class SessionHelper
     }
 
     /**
-     * 現在のセッションを完全に破棄し、セッションCookieも失効させる。
+     * $_SESSION を空にし、セッションCookie の失効を試みる。
+     * セッションが開始済みの場合のみ session_destroy() を呼ぶ。
+     * このメソッド自体は session_start() を行わない。
      *
      * @return void
      */
@@ -142,6 +144,51 @@ final class SessionHelper
 
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
+        }
+    }
+
+    /**
+     * 既存セッションを無効化し、必要に応じて新しいセッションを開始する。
+     *
+     * @param bool $restart true の場合は無効化後に新しいセッションを開始する
+     * @return void
+     */
+    public static function invalidateSession(bool $restart = false): void
+    {
+        // 現在のリクエストが既存セッションを参照しているかを判定する。
+        $cookieName = session_name();
+        $hadCookie = isset($_COOKIE[$cookieName]);
+        $hasSessionRef =
+            session_status() === PHP_SESSION_ACTIVE
+            || session_id() !== ''
+            || $hadCookie;
+
+        // 既存セッションの破棄対象があり、まだ開始されていなければ開始する。
+        if ($hasSessionRef && session_status() !== PHP_SESSION_ACTIVE) {
+            @session_start();
+        }
+
+        // 同一リクエスト内の利用を止めるため、セッション配列は先に空にする。
+        $_SESSION = [];
+
+        // 開始済みセッションがあれば、永続化されたセッション本体も破棄する。
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+
+        // Cookie が存在した場合は、destroy の成否に関係なく失効を試みる。
+        if ($hadCookie) {
+            unset($_COOKIE[$cookieName]);
+            self::expireSessionCookie();
+        }
+
+        // 再開指定があれば、古い ID を引き継がないようにしてから新規開始する。
+        if ($restart && session_status() !== PHP_SESSION_ACTIVE) {
+            if (session_id() !== '') {
+                session_id('');
+            }
+
+            @session_start();
         }
     }
 
