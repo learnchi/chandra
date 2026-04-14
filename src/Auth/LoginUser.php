@@ -5,39 +5,55 @@ declare(strict_types=1);
 namespace Studiogau\Chandra\Auth;
 
 /**
- * ログインユーザー情報を保持するDTO。
+ * ログイン済みユーザー情報を保持するDTO。
  */
 class LoginUser
 {
-    private string $userId;
+    private string $id;
+    private string $loginId;
     private string $userName;
     private array $permissions;
     private ?int $startTime;
 
     /**
-     * @param string   $userId      ユーザーID
-     * @param string   $userName    ユーザー名
-     * @param array    $permissions 権限一覧
-     * @param int|null $startTime   セッション開始時刻（UNIXタイム）
+     * @param string|int $id         アプリ内で一意なユーザーID
+     * @param string|int $loginId    ログイン時に入力するID
+     * @param string     $userName   ログイン後に表示するユーザー名
+     * @param array      $permissions 権限一覧
+     * @param int|null   $startTime  セッション開始時刻 UNIXタイム
      */
-    public function __construct(string $userId, string $userName, array $permissions = [], ?int $startTime = null)
-    {
-        $this->userId = $userId;
+    public function __construct(
+        string|int $id,
+        string|int $loginId,
+        string $userName,
+        array $permissions = [],
+        ?int $startTime = null
+    ) {
+        $this->id = (string) $id;
+        $this->loginId = (string) $loginId;
         $this->userName = $userName;
         $this->permissions = $permissions;
         $this->startTime = $startTime;
     }
 
     /**
-     * @return string ユーザーID
+     * @return string アプリ内で一意なユーザーID
      */
-    public function getUserId(): string
+    public function getId(): string
     {
-        return $this->userId;
+        return $this->id;
     }
 
     /**
-     * @return string ユーザー名
+     * @return string ログイン時に入力するID
+     */
+    public function getLoginId(): string
+    {
+        return $this->loginId;
+    }
+
+    /**
+     * @return string ログイン後に表示するユーザー名
      */
     public function getUserName(): string
     {
@@ -45,7 +61,7 @@ class LoginUser
     }
 
     /**
-     * 権限を保持しているか判定する。
+     * 権限を保持しているかを確認する。
      *
      * @param string $permission 権限キー
      * @return bool

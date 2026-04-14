@@ -92,7 +92,8 @@ final class AuthServiceTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '101',
+                    'login_id' => $userId,
                     'user_name' => 'Tester',
                     'permissions' => 'read,write',
                 ];
@@ -106,7 +107,8 @@ final class AuthServiceTest extends TestCase
         $this->assertInstanceOf(LoginUser::class, $result);
         $currentUser = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $currentUser);
-        $this->assertSame('user01', $currentUser->getUserId());
+        $this->assertSame('101', $currentUser->getId());
+        $this->assertSame('user01', $currentUser->getLoginId());
         $this->assertTrue($currentUser->can('write'));
     }
 
@@ -119,7 +121,8 @@ final class AuthServiceTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '101',
+                    'login_id' => $userId,
                     'user_name' => 'Tester',
                     'permissions' => 'read',
                 ];
@@ -140,7 +143,8 @@ final class AuthServiceTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '102',
+                    'login_id' => $userId,
                     'user_name' => 'ArrayTester',
                     'permissions' => ['read', ' write ', ''],
                 ];
@@ -154,10 +158,36 @@ final class AuthServiceTest extends TestCase
         $this->assertInstanceOf(LoginUser::class, $result);
         $currentUser = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $currentUser);
-        $this->assertSame('user02', $currentUser->getUserId());
+        $this->assertSame('102', $currentUser->getId());
+        $this->assertSame('user02', $currentUser->getLoginId());
         $this->assertTrue($currentUser->can('read'));
         $this->assertTrue($currentUser->can('write'));
         $this->assertFalse($currentUser->can(''));
+    }
+
+    public function testLoginAcceptsIntegerIdWithoutCastingInRepository(): void
+    {
+        $repo = new class implements UserRepositoryInterface {
+            public function findByCredentials(string $userId, string $password): ?array
+            {
+                return [
+                    'id' => 103,
+                    'login_id' => $userId,
+                    'user_name' => 'IntIdTester',
+                    'permissions' => ['read'],
+                ];
+            }
+        };
+
+        $service = new AuthService($repo, new AuthServiceNullLogger());
+
+        $result = $service->login(new LoginCredentials('user03', 'secret'));
+
+        $this->assertInstanceOf(LoginUser::class, $result);
+        $currentUser = $service->getCurrentUser();
+        $this->assertInstanceOf(LoginUser::class, $currentUser);
+        $this->assertSame('103', $currentUser->getId());
+        $this->assertSame('user03', $currentUser->getLoginId());
     }
 
     /**
@@ -218,7 +248,7 @@ final class AuthServiceTest extends TestCase
             $this->fail('AuthException was not thrown.');
         } catch (AuthException $exception) {
             $this->assertCount(1, $logger->records);
-            $this->assertStringContainsString('user_id=missing', $logger->records[0]['message']);
+            $this->assertStringContainsString('login_id=missing', $logger->records[0]['message']);
             $this->assertStringNotContainsString('plain-secret-password', $logger->records[0]['message']);
         }
     }
@@ -239,14 +269,15 @@ final class AuthServiceTest extends TestCase
         $repo = $this->createStub(UserRepositoryInterface::class);
         $service = new AuthService($repo, new AuthServiceNullLogger());
 
-        $loginUser = new LoginUser('valid-user', 'Tester', ['read'], 1234567890);
+        $loginUser = new LoginUser('10', 'valid-user', 'Tester', ['read'], 1234567890);
         SessionHelper::setUser($loginUser);
 
         $this->assertTrue($service->checkUserSession());
 
         $stored = $service->getCurrentUser();
         $this->assertInstanceOf(LoginUser::class, $stored);
-        $this->assertSame('valid-user', $stored->getUserId());
+        $this->assertSame('10', $stored->getId());
+        $this->assertSame('valid-user', $stored->getLoginId());
     }
 
     /**
@@ -257,7 +288,7 @@ final class AuthServiceTest extends TestCase
         $repo = $this->createStub(UserRepositoryInterface::class);
         $service = new AuthService($repo, new AuthServiceNullLogger());
 
-        SessionHelper::setUser(new LoginUser('logout-user', 'Tester'));
+        SessionHelper::setUser(new LoginUser('11', 'logout-user', 'Tester'));
         $service->logout();
 
         $this->assertNull($service->getCurrentUser());
