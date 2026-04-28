@@ -52,7 +52,8 @@ final class AuthSessionIntegrationTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '401',
+                    'login_id' => $userId,
                     'user_name' => 'Tester',
                     'permissions' => 'read,write',
                 ];
@@ -83,7 +84,8 @@ final class AuthSessionIntegrationTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '402',
+                    'login_id' => $userId,
                     'user_name' => 'Tester',
                     'permissions' => 'read,write',
                 ];

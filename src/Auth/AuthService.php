@@ -125,7 +125,7 @@ final class AuthService
             $this->logger->fatal(
                 __METHOD__
                 . ' invalid credentials'
-                . ' user_id=' . $credentials->getUserId()
+                . ' login_id=' . $credentials->getUserId()
                 . ' exception=' . get_class($e)
             );
             $this->runFailedLoginGuards(
@@ -139,7 +139,7 @@ final class AuthService
             $this->logger->fatal(
                 __METHOD__
                 . ' repository failure'
-                . ' user_id=' . $credentials->getUserId()
+                . ' login_id=' . $credentials->getUserId()
                 . ' exception=' . get_class($e)
             );
             $this->runFailedLoginGuards(
@@ -280,7 +280,8 @@ final class AuthService
         ));
 
         return new LoginUser(
-            $row['user_id'],
+            $row['id'],
+            $row['login_id'],
             $row['user_name'],
             $permissions,
             $startTime

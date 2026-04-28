@@ -81,5 +81,57 @@ final class SessionHelperExtendedTest extends TestCase
         $this->assertSame(['admin', 'user'], SessionHelper::getMasterList('roles'));
         $this->assertNull(SessionHelper::getMasterList('missing'));
     }
+
+    /**
+     * invalidateSession で現在のセッション内容と Cookie 参照が消えることを確認する。
+     */
+    public function testInvalidateSessionClearsSessionAndCookie(): void
+    {
+        SessionHelper::setPref('theme', 'dark');
+        $_COOKIE[session_name()] = session_id();
+
+        SessionHelper::invalidateSession();
+
+        $this->assertSame([], $_SESSION);
+        $this->assertArrayNotHasKey(session_name(), $_COOKIE);
+        $this->assertSame(PHP_SESSION_NONE, session_status());
+    }
+
+    /**
+     * restart=true の場合は、破棄後に新しいセッションが開始されることを確認する。
+     */
+    public function testInvalidateSessionCanRestartWithFreshSessionId(): void
+    {
+        $beforeSessionId = session_id();
+        SessionHelper::setPref('theme', 'dark');
+        $_COOKIE[session_name()] = $beforeSessionId;
+
+        SessionHelper::invalidateSession(true);
+
+        $this->assertSame(PHP_SESSION_ACTIVE, session_status());
+        $this->assertSame([], $_SESSION);
+        $this->assertArrayNotHasKey(session_name(), $_COOKIE);
+        $this->assertNotSame('', session_id());
+        $this->assertNotSame($beforeSessionId, session_id());
+    }
+
+    /**
+     * session_write_close() 済みでも、既存参照があれば invalidateSession が破棄を完了できることを確認する。
+     */
+    public function testInvalidateSessionHandlesClosedSessionReference(): void
+    {
+        SessionHelper::setPref('theme', 'dark');
+        $_COOKIE[session_name()] = session_id();
+
+        session_write_close();
+
+        $this->assertSame(PHP_SESSION_NONE, session_status());
+
+        SessionHelper::invalidateSession();
+
+        $this->assertSame([], $_SESSION);
+        $this->assertArrayNotHasKey(session_name(), $_COOKIE);
+        $this->assertSame(PHP_SESSION_NONE, session_status());
+    }
 }
 

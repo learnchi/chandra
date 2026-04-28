@@ -316,7 +316,7 @@ class Database
         }
 
         $logValues = rtrim($bindValues, ',');
-        $this->logger->info(__METHOD__ . 'update executed: table=' . $table . ' set=[' . $logValues . ']');
+        $this->logger->info(__METHOD__ . ' executed: table=' . $table . ' set=[' . $logValues . ']');
         $stmt->execute();
 
         $affected = $stmt->rowCount();

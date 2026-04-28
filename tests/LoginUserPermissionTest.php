@@ -14,7 +14,7 @@ final class LoginUserPermissionTest extends TestCase
      */
     public function testCanUsesStrictComparison(): void
     {
-        $user = new LoginUser('u1', 'Tester', ['1', 'read']);
+        $user = new LoginUser('1', 'u1', 'Tester', ['1', 'read']);
 
         $this->assertTrue($user->can('1'));
         $this->assertFalse($user->can('01'));

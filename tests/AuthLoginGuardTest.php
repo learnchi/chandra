@@ -57,7 +57,8 @@ final class AuthLoginGuardTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '301',
+                    'login_id' => $userId,
                     'user_name' => 'Tester',
                     'permissions' => ['read'],
                 ];
@@ -77,7 +78,8 @@ final class AuthLoginGuardTest extends TestCase
         $this->assertSame('user01', $guard->successes[0]['attempt']->getUserId());
         $this->assertSame('203.0.113.10', $guard->successes[0]['attempt']->getClientIp());
         $this->assertSame('menu.php', $guard->successes[0]['attempt']->getAttribute('route'));
-        $this->assertSame('user01', $guard->successes[0]['user']->getUserId());
+        $this->assertSame('301', $guard->successes[0]['user']->getId());
+        $this->assertSame('user01', $guard->successes[0]['user']->getLoginId());
     }
 
     /**

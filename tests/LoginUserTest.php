@@ -13,9 +13,11 @@ final class LoginUserTest extends TestCase
      */
     public function testStartTimeGetterAndSetter(): void
     {
-        $user = new LoginUser('user2', 'Tester', [], null);
+        $user = new LoginUser('2', 'user2', 'Tester', [], null);
 
         $this->assertNull($user->getStartTime());
+        $this->assertSame('2', $user->getId());
+        $this->assertSame('user2', $user->getLoginId());
 
         $user->setStartTime(1700000000);
         $this->assertSame(1700000000, $user->getStartTime());

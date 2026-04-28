@@ -66,7 +66,7 @@ Chandra を組み込むアプリでは、少なくとも次の前提を満たし
 
 - `AuthService` や `SessionHelper` を使う前に、アプリ側で `session_start()` を呼ぶ前提です
 - 認証本体はアプリ側の `UserRepositoryInterface` 実装に委譲されるため、ユーザー照合処理は別途実装が必要です
-- `UserRepositoryInterface` の戻り値は、少なくとも `user_id` `user_name` `permissions` を含む配列である必要があります
+- `UserRepositoryInterface` の戻り値は、少なくとも `id` `login_id` `user_name` `permissions` を含む配列である必要があります
 - セッションキーと CSRF トークンの名前空間は `$_SERVER['SCRIPT_NAME']` の先頭ディレクトリ名を使うため、安定した URL 配置を前提にしています
 
 ### 機能ごとの追加前提
@@ -81,6 +81,15 @@ Chandra を組み込むアプリでは、少なくとも次の前提を満たし
 - テスト実行には `require-dev` を含めた Composer install が必要です
 - `vendor/bin/phpunit` の実行には PHPUnit 11 系が入っている必要があります
 - MySQL 統合テストを動かす場合は、`tests/dbconfig.local.ini` を用意し、テスト用 DB を作成・削除できる権限が必要です
+
+## バージョンメモ
+
+### v0.2.0
+
+- `v0.1.x` から認証まわりに破壊的変更があります
+- `UserRepositoryInterface` の戻り値は、従来の `user_id` ではなく、`id` `login_id` `user_name` `permissions` を含む配列が必要です
+- `LoginUser` は、アプリ内の識別子を `getId()`、ログイン時に入力するIDを `getLoginId()` として分離しました
+- `v0.1.x` 向けの `UserRepositoryInterface` 実装を使っている場合は、`v0.2.0` への更新時に返却配列を修正してください
 
 ## クイックスタート
 
@@ -174,7 +183,7 @@ CREATE TABLE users (
 );
 ```
 
-Chandra の `UserRepositoryInterface` に返す値は、このテーブル構造そのものではなく、`user_id` / `user_name` / `permissions` へ詰め替えた配列です。
+Chandra の `UserRepositoryInterface` に返す値は、このテーブル構造そのものではなく、`id` / `login_id` / `user_name` / `permissions` へ詰め替えた配列です。`id` には主キー、`login_id` にはログイン時に入力するIDを入れる形が分かりやすいです。
 
 #### 1-4. 監査証跡を有効にする
 
@@ -200,7 +209,7 @@ $database = Database::fromConfiguredSource(
 );
 
 $auth = AuthServiceFactory::create($logger);
-$userId = $auth->getCurrentUser()?->getUserId();
+$userId = $auth->getCurrentUser()?->getId();
 
 if (!empty($userId)) {
     $database->setCurrentUserId($userId);
@@ -212,7 +221,7 @@ if (!empty($userId)) {
 ### 2. UserRepository を実装する
 
 `AuthService` は資格情報の照合そのものを `UserRepositoryInterface` に委譲します。  
-戻り値は最低限、`user_id`、`user_name`、`permissions` を含む配列です。
+戻り値は最低限、`id`、`login_id`、`user_name`、`permissions` を含む配列です。`id` は Chandra がログイン後に保持する識別子、`login_id` は認証時に入力されるIDです。
 
 `noblestock` では、アプリ側の `users` テーブル構造をそのまま返すのではなく、Chandra が扱う形に変換しています。
 
@@ -233,7 +242,8 @@ final class UserRepository implements UserRepositoryInterface
         }
 
         return [
-            'user_id' => $row['login_id'],
+            'id' => $row['id'],
+            'login_id' => $row['login_id'],
             'user_name' => $row['user_name'],
             'permissions' => $this->buildPermissionsFromAuthority((string) ($row['authority'] ?? '')),
         ];

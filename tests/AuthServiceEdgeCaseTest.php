@@ -47,7 +47,8 @@ final class AuthServiceEdgeCaseTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '201',
+                    'login_id' => $userId,
                     'user_name' => 'Tester',
                     'permissions' => 'read',
                 ];
@@ -72,7 +73,8 @@ final class AuthServiceEdgeCaseTest extends TestCase
             public function findByCredentials(string $userId, string $password): ?array
             {
                 return [
-                    'user_id' => $userId,
+                    'id' => '202',
+                    'login_id' => $userId,
                     'user_name' => 'NoPerm',
                     'permissions' => null,
                 ];
