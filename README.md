@@ -82,6 +82,15 @@ Chandra を組み込むアプリでは、少なくとも次の前提を満たし
 - `vendor/bin/phpunit` の実行には PHPUnit 11 系が入っている必要があります
 - MySQL 統合テストを動かす場合は、`tests/dbconfig.local.ini` を用意し、テスト用 DB を作成・削除できる権限が必要です
 
+## バージョンメモ
+
+### v0.2.0
+
+- `v0.1.x` から認証まわりに破壊的変更があります
+- `UserRepositoryInterface` の戻り値は、従来の `user_id` ではなく、`id` `login_id` `user_name` `permissions` を含む配列が必要です
+- `LoginUser` は、アプリ内の識別子を `getId()`、ログイン時に入力するIDを `getLoginId()` として分離しました
+- `v0.1.x` 向けの `UserRepositoryInterface` 実装を使っている場合は、`v0.2.0` への更新時に返却配列を修正してください
+
 ## クイックスタート
 
 ### 1. データベース接続を設定する
