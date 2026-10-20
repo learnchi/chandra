@@ -17,6 +17,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        coverage: none
+
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
 
@@ -32,6 +38,8 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
 
+    - name: Run test suite
+      run: vendor/bin/phpunit tests
     # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
     # Docs: https://getcomposer.org/doc/articles/scripts.md
 
