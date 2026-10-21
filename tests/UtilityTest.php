@@ -156,7 +156,7 @@ final class UtilityTest extends TestCase
     }
 
     /**
-     * creatImageSize が指定幅の画像を生成することを確認する。
+     * createImageSize が指定幅の画像を生成することを確認する。
      */
     public function testCreateImageSize(): void
     {
@@ -166,7 +166,7 @@ final class UtilityTest extends TestCase
         $resized = $this->workDir . DIRECTORY_SEPARATOR . 'resized.jpg';
         $this->createJpeg($source, 80, 40);
 
-        $ok = Utility::creatImageSize($source, $resized, 50);
+        $ok = Utility::createImageSize($source, $resized, 50);
 
         $this->assertTrue($ok);
         [$width] = getimagesize($resized);
@@ -174,7 +174,7 @@ final class UtilityTest extends TestCase
     }
 
     /**
-     * creatImageSize34 が縦長画像を 4:3 内に収めるようリサイズ・トリミングすることを確認する。
+     * createImageSize34 が縦長画像を 4:3 内に収めるようリサイズ・トリミングすることを確認する。
      */
     public function testCreateImageSize34CropsTallImage(): void
     {
@@ -184,12 +184,91 @@ final class UtilityTest extends TestCase
         $resized = $this->workDir . DIRECTORY_SEPARATOR . 'tall_out.gif';
         $this->createGif($source, 40, 200);
 
-        $ok = Utility::creatImageSize34($source, $resized, 20);
+        $ok = Utility::createImageSize34($source, $resized, 20);
 
         $this->assertTrue($ok);
         [$width, $height] = getimagesize($resized);
         $this->assertSame(20, $width);
         $this->assertSame(15, $height);
+    }
+
+    /**
+     * createSmallImage が元ファイルのない場合に false を返し、サムネイルを生成しないことを確認する。
+     */
+    public function testCreateSmallImageReturnsFalseForMissingSource(): void
+    {
+        $this->assertFalse(Utility::createSmallImage($this->workDir, 'missing.png', 60));
+        $this->assertFileDoesNotExist($this->workDir . DIRECTORY_SEPARATOR . 's_missing.png');
+    }
+
+    /**
+     * createImageSize が未指定・空文字・存在しない入力に対して false を返すことを確認する。
+     */
+    public function testCreateImageSizeReturnsFalseForMissingSource(): void
+    {
+        $output = $this->workDir . DIRECTORY_SEPARATOR . 'output.png';
+
+        foreach ([null, '', $this->workDir . DIRECTORY_SEPARATOR . 'missing.png'] as $source) {
+            $this->assertFalse(Utility::createImageSize($source, $output, 60));
+            $this->assertFileDoesNotExist($output);
+        }
+    }
+
+    /**
+     * createImageSize34 が存在しないファイルやディレクトリに対して false を返すことを確認する。
+     */
+    public function testCreateImageSize34ReturnsFalseForNonFileSource(): void
+    {
+        $output = $this->workDir . DIRECTORY_SEPARATOR . 'output.png';
+
+        foreach (['', $this->workDir . DIRECTORY_SEPARATOR . 'missing.png', $this->workDir] as $source) {
+            $this->assertFalse(Utility::createImageSize34($source, $output, 60));
+            $this->assertFileDoesNotExist($output);
+        }
+    }
+
+    /**
+     * createImageSize34 が画像として読み取れないファイルに対して false を返すことを確認する。
+     */
+    public function testCreateImageSize34ReturnsFalseForNonImageSource(): void
+    {
+        $source = $this->workDir . DIRECTORY_SEPARATOR . 'invalid.png';
+        $output = $this->workDir . DIRECTORY_SEPARATOR . 'output.png';
+        file_put_contents($source, 'This is not an image.');
+
+        $this->assertFalse(Utility::createImageSize34($source, $output, 60));
+        $this->assertFileDoesNotExist($output);
+    }
+
+    /**
+     * createImageSize34 が画像の内容を持つ未対応の入力拡張子に対して false を返すことを確認する。
+     */
+    public function testCreateImageSize34ReturnsFalseForUnsupportedSourceExtension(): void
+    {
+        $this->requireGd();
+
+        $source = $this->workDir . DIRECTORY_SEPARATOR . 'source.bmp';
+        $output = $this->workDir . DIRECTORY_SEPARATOR . 'output.png';
+        // 内容は有効なPNGにして、画像の読み取り失敗ではなく拡張子の判定を通るようにする。
+        $this->createPng($source, 80, 40);
+
+        $this->assertFalse(Utility::createImageSize34($source, $output, 60));
+        $this->assertFileDoesNotExist($output);
+    }
+
+    /**
+     * createImageSize34 が未対応の出力拡張子に対して false を返し、ファイルを生成しないことを確認する。
+     */
+    public function testCreateImageSize34ReturnsFalseForUnsupportedOutputExtension(): void
+    {
+        $this->requireGd();
+
+        $source = $this->workDir . DIRECTORY_SEPARATOR . 'source.png';
+        $output = $this->workDir . DIRECTORY_SEPARATOR . 'output.bmp';
+        $this->createPng($source, 80, 40);
+
+        $this->assertFalse(Utility::createImageSize34($source, $output, 60));
+        $this->assertFileDoesNotExist($output);
     }
 
     private function requireGd(): void
