@@ -44,6 +44,10 @@ XAMPP と Composer の準備から、HTML 出力エスケープやロガーの�
   
   クラス、メソッド、設定項目を機能別に確認します。
 
+## リリース履歴
+
+変更内容と更新時の注意点は、[リリース一覧](https://github.com/learnchi/chandra/releases)をご覧ください。
+
 ## 動作環境
 
 - PHP 8.2 以上
