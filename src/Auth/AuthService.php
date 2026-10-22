@@ -41,16 +41,26 @@ final class AuthService
     /** @var list<LoginGuardInterface> */
     private array $loginGuards;
 
+    private int $loginTimeout;
+
     /**
      * @param UserRepositoryInterface $repo        認証本体を担当する repository
      * @param Logger|null             $logger      ロガー。未指定なら既定ロガー
      * @param iterable<mixed>         $loginGuards ログイン時に差し込む guard 一覧
+     * @param int                     $loginTimeout アイドルタイムアウト秒数。0で無効
+     * @throws \InvalidArgumentException タイムアウト秒数が負の場合
      */
     public function __construct(
         UserRepositoryInterface $repo,
         ?Logger $logger = null,
-        iterable $loginGuards = []
+        iterable $loginGuards = [],
+        int $loginTimeout = ChandraConst::LOGIN_TIMEOUT
     ) {
+        if ($loginTimeout < 0) {
+            throw new \InvalidArgumentException('Login timeout must not be negative');
+        }
+
+        $this->loginTimeout = $loginTimeout;
         $this->repo = $repo;
         $this->logger = $logger ?? Logger::createDefault();
         $this->loginGuards = $this->normalizeLoginGuards($loginGuards);
@@ -59,7 +69,7 @@ final class AuthService
     /**
      * 現在のセッションに有効なログインユーザーがいるかを確認する。
      *
-     * LOGIN_TIMEOUT が有効な場合は、ここで最終アクセス時刻も更新する。
+     * タイムアウトが有効な場合は、ここで最終アクセス時刻も更新する。
      */
     public function checkUserSession(): bool
     {
@@ -68,13 +78,13 @@ final class AuthService
             return false;
         }
 
-        if (ChandraConst::LOGIN_TIMEOUT > 0) {
+        if ($this->loginTimeout > 0) {
             $startTime = $loginUser->getStartTime();
             if (empty($startTime)) {
                 $loginUser->setStartTime(time());
             } else {
                 $progressTime = time() - $startTime;
-                if ($progressTime >= ChandraConst::LOGIN_TIMEOUT) {
+                if ($progressTime >= $this->loginTimeout) {
                     $this->logout();
                     return false;
                 }
@@ -263,7 +273,7 @@ final class AuthService
 
     private function buildLoginUser(array $row): LoginUser
     {
-        $startTime = ChandraConst::LOGIN_TIMEOUT > 0 ? time() : null;
+        $startTime = $this->loginTimeout > 0 ? time() : null;
         $rawPermissions = $row['permissions'] ?? [];
 
         // permissions は配列でも CSV 文字列でも受けられるようにする。

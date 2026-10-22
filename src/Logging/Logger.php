@@ -2,8 +2,6 @@
 
 namespace Studiogau\Chandra\Logging;
 
-use RuntimeException;
-
 /**
  * ロガー。
  */
@@ -46,12 +44,14 @@ class Logger
 
         if (!is_dir($this->logDirectory)) {
             if (!@mkdir($this->logDirectory, 0777, true) && !is_dir($this->logDirectory)) {
-                throw new RuntimeException('Unable to create log directory: ' . $this->logDirectory);
+                // 保存先を準備できなくてもLoggerを生成し、原因をPHP標準ログへ残す。
+                error_log('Chandra: Unable to create log directory: ' . $this->logDirectory);
+                return;
             }
         }
 
         if (!is_writable($this->logDirectory)) {
-            throw new RuntimeException('Log directory is not writable: ' . $this->logDirectory);
+            error_log('Chandra: Log directory is not writable: ' . $this->logDirectory);
         }
     }
 
@@ -71,9 +71,11 @@ class Logger
     /**
      * ログを1行書き込む（年月ごとのファイルに日付・レベルを付与）。
      *
+     * 書き込みに失敗した場合は、保存先とログ内容をPHP標準ログへ記録する。
+     *
      * @param int    $level   出力するレベル
      * @param string $message 出力メッセージ
-     * @return bool  書き込み成功またはスキップ時はtrue、失敗時はfalse
+     * @return bool  アプリログへの書き込み成功またはスキップ時はtrue、失敗時はfalse
      */
     public function log($level, $message)
     {
@@ -93,6 +95,11 @@ class Logger
         $filePath = $this->buildFilePath();
 
         $result = @file_put_contents($filePath, $line, FILE_APPEND | LOCK_EX);
+
+        if ($result === false) {
+            error_log('Chandra: Failed to write log: ' . $filePath);
+            error_log(rtrim($line));
+        }
 
         return $result !== false;
     }

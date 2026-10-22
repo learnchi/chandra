@@ -333,7 +333,7 @@ final class Utility
             if (file_exists($dirnm . '/' . $filenm)) {
                 $rtn = true;
                 if (!file_exists($dirnm . '/s_' . $filenm)) {
-                    $rtn = self::creatSmallImage($dirnm, $filenm, $tsize);
+                    $rtn = self::createSmallImage($dirnm, $filenm, $tsize);
                 }
             }
         }
@@ -349,11 +349,11 @@ final class Utility
      * @param int    $tsize  サムネイル横幅
      * @return bool true:生成成功 / false:失敗
      */
-    public static function creatSmallImage($dirnm, $filenm, $tsize)
+    public static function createSmallImage($dirnm, $filenm, $tsize)
     {
         $targetFile = $dirnm . '/' . $filenm;
         $sfile_name = $dirnm . '/s_' . $filenm;
-        return self::creatImageSize34($targetFile, $sfile_name, $tsize);
+        return self::createImageSize34($targetFile, $sfile_name, $tsize);
     }
 
     /**
@@ -364,7 +364,7 @@ final class Utility
      * @param int    $imgSize     サムネイル横幅
      * @return bool true:生成成功 / false:失敗
      */
-    public static function creatImageSize($targetFile, $createFile, $imgSize)
+    public static function createImageSize($targetFile, $createFile, $imgSize)
     {
         $rtn = false;
 
@@ -411,7 +411,7 @@ final class Utility
      * @param int    $width      出力画像の横幅
      * @return bool true:生成成功 / false:失敗
      */
-    public static function creatImageSize34($targetFile, $createFile, $width)
+    public static function createImageSize34($targetFile, $createFile, $width)
     {
         if (!is_file($targetFile)) {
             return false;
